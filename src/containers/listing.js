@@ -2,72 +2,75 @@
  * Created by CarlosM on 18/06/2020.
  */
 
-import React, {useEffect, useState} from 'react';
-import api from './API';
+import React, {useEffect} from 'react';
 import { Link } from "react-router-dom";
-import { Table } from 'antd';
+import { Table, Spin, Modal } from 'antd';
+import { ExclamationCircleOutlined } from '@ant-design/icons';
+
+import { connect } from 'react-redux';
+import { getLaunches } from '../actions';
+
+const { error } = Modal;
 
 
-function Listing() {
-    const [data, setData] = useState({launches: [], isFetching: false});
+
+let Listing = ({getLaunches, loading, launches, counter}) => {
     useEffect(() => {
-        const fetchLaunches = async () => {
-            setData({launches: data.launches, isFetching: true});
-            api.get("/upcoming")
-                .then(response => {
-                    setData({launches: response.data, isFetching: false});
-                })
-                .catch(error => {
-                    console.log(error);
-                    setData({launches: data.launches, isFetching: false});
-                })
-        };
-        fetchLaunches();
+        getLaunches();
     }, []);
     const columns = [
         {
-            title: 'Name',
+            title: 'ID',
+            dataIndex: 'id',
+            key: "id",
+            render: text => <Link to={"/data/" + text}>{text}</Link>,
+        },
+        {
+            title: 'Nombre',
             dataIndex: 'name',
-            render: text => <Link to="/data">{text}</Link>,
-        },
-        {
-            title: 'Cash Assets',
-            className: 'column-money',
-            dataIndex: 'money',
-            align: 'right',
-        },
-        {
-            title: 'Address',
-            dataIndex: 'address',
         },
     ];
-    const datax = [
-        {
-            key: '1',
-            name: 'John Brown',
-            money: '￥300,000.00',
-            address: 'New York No. 1 Lake Park',
-        },
-        {
-            key: '2',
-            name: 'Jim Green',
-            money: '￥1,256,000.00',
-            address: 'London No. 1 Lake Park',
-        },
-        {
-            key: '3',
-            name: 'Joe Black',
-            money: '￥120,000.00',
-            address: 'Sidney No. 1 Lake Park',
-        },
-    ];
-    return <Table
-        columns={columns}
-        dataSource={datax}
-        bordered
-        size="small"
-        title={() => <h2>Coding Challenge</h2>}
-    />;
+    const datax = [];
+    if (launches!==null && launches!==undefined && launches.length>0) {
+        for (let i = 0; i < launches.length; i++) {
+            datax.push({
+                id: launches[i].id,
+                name: launches[i].name
+            })
+        }
+    } else if (counter===-1) {
+        error({
+            title: 'Error al conectarse al servidor',
+            icon: <ExclamationCircleOutlined />,
+            content: 'No se han leído los datos correctamente. Esto puede deberse a un error de conexión al servidor. Verifique su conexión a internet y después recargue la página...',
+            okText: 'Aceptar',
+        });
+        loading = false;
+    }
+    return <>
+    <Spin spinning={ loading } tip="Cargando...">
+        <Table
+            columns={columns}
+            dataSource={datax}
+            width="400px"
+            rowKey="id"
+            bordered
+            size="small"
+        />
+    </Spin>
+    </>
 }
+
+const mapDispatchToProps = {
+    getLaunches: getLaunches
+}
+
+const mapStateToProps = (state) => (
+    { loading: state.loading,
+      launches: state.launches,
+      counter: state.counter }
+)
+
+Listing = connect(mapStateToProps, mapDispatchToProps)(Listing);
 
 export default Listing;
